@@ -1781,7 +1781,17 @@ class LiveRail
     response = Crack::XML.parse(response)
     response = JSON.parse(response.to_json)
 
-    if response['liverailapi']['status'] == "fail" && (['6', '2', '5', '15'].include? response['liverailapi']['error'][0] ? response['liverailapi']['error'][0]['code'] : response['liverailapi']['error']['code'])
+    #known error codes
+    #
+    #retry for
+    #{"code"=>"413", "message"=>"Token session has expired"}
+    retriable_error_codes = %w{413}
+    #no retry for
+    #{"code"=>"659", "message"=>"The value '...' is longer than X characters"}
+    #{"code"=>"15", "message"=>"Invalid parameter(s) site_url 'abcdefg'", "field"=>"site_url"}
+    #>{"code"=>"15", "message"=>"Invalid parameter(s) dimensions ''", "field"=>"dimensions"} (/statistics/aggregated with no params)
+    #{"code"=>"13", "message"=>"Token is required"}
+    if response['liverailapi']['status'] == "fail" && (retriable_error_codes.include? response['liverailapi']['error'][0] ? response['liverailapi']['error'][0]['code'] : response['liverailapi']['error']['code'])
       response = login
       if response['liverailapi']['status'] == "success" && path != "/login/"
         response = request path, body
